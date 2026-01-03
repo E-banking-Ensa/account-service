@@ -210,7 +210,7 @@ public class AccountServiceImpl implements AccountService {
 
 
     // gneration du  releve compte
-    public byte[] getTransactiondtoByAccountId(int accountId) {
+    public byte[] generateReleveByAccountId(int accountId) {
 
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));

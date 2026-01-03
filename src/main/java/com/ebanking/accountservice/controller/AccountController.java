@@ -30,7 +30,7 @@ public class AccountController {
         this.accountService = accountService;
     }
 
-    @PostMapping
+    @PostMapping("/createAccount")
     public ResponseEntity<?> createAccount(@RequestBody AccountCreateRequest request) {
 
         try {
@@ -62,7 +62,6 @@ public class AccountController {
 
 
 
-
     @PutMapping("/{accountId}/status")
     public ResponseEntity<?> updateAccountStatus(
             @PathVariable int accountId,
@@ -85,7 +84,6 @@ public class AccountController {
                     .body(ErrorResponseUtil.createErrorResponse("Unexpected error", e.getMessage()));
         }
     }
-
 
 
 
@@ -148,14 +146,6 @@ public class AccountController {
 
 
 
-    //transaction
-//    @GetMapping("/{accountId}/transactions")
-//    public List<TransactionDTO> getTransactions(@PathVariable int accountId) {
-//        return accountService.getTransactionsByAccountId(accountId);
-//    }
-
-
-
     // transactions d'un compte
     @GetMapping("/{accountId}/transactions")
     public ResponseEntity<?> getTransactions(@PathVariable int accountId) {
@@ -187,25 +177,10 @@ public class AccountController {
 
 
 
-
-
-//    @GetMapping("/{accountId}/releve")
-//    public ResponseEntity<byte[]> downloadReleve(@PathVariable int accountId) {
-//
-//        byte[] pdf = accountService.getTransactiondtoByAccountId(accountId);
-//
-//        return ResponseEntity.ok()
-//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=releve.pdf")
-//                .contentType(MediaType.APPLICATION_PDF)
-//                .body(pdf);
-//    }
-
-
-
     @GetMapping("/{accountId}/releve")
     public ResponseEntity<?> downloadReleve(@PathVariable int accountId) {
         try {
-            byte[] pdf = accountService.getTransactiondtoByAccountId(accountId);
+            byte[] pdf = accountService.generateReleveByAccountId(accountId);
 
             // Vérifie si le PDF a bien été généré
             if (pdf == null || pdf.length == 0) {
@@ -238,6 +213,7 @@ public class AccountController {
     }
 
 
+
     @GetMapping("/nbrTotal")
     public ResponseEntity<?> getTotalAccounts() {
         try {
@@ -266,7 +242,8 @@ public class AccountController {
     }
 
 
-    @GetMapping("/{clientId}/nbrAccount")
+
+    @GetMapping("/client/{clientId}/nbrAccount")
     public ResponseEntity<?> getNumberOfAccountsByClient(@PathVariable UUID clientId) {
         try {
             long count = accountService.getNumberOfAccountsByClientId(clientId);
@@ -291,9 +268,6 @@ public class AccountController {
                     ));
         }
     }
-
-
-
 
 }
 

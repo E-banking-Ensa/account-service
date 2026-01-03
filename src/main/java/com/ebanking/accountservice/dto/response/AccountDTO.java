@@ -10,6 +10,7 @@ import java.util.UUID;
 @Data
 @JsonPropertyOrder({"accountId", "userId", "rib", "accountType","accountStatus", "balance","currency", "createdDate"})
 public class AccountDTO {
+
     private int accountId;
     private AccountType accountType;
     private Double balance;
@@ -18,10 +19,6 @@ public class AccountDTO {
     private String  accountStatus;
     private LocalDateTime createdDate;
     private UUID userId;
-
-    // Getters et setters
-
-
 
 }
 

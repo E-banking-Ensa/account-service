@@ -33,7 +33,7 @@ public interface AccountService {
 
 
     // genration du releve
-    public byte[] getTransactiondtoByAccountId(int accountId);
+    public byte[] generateReleveByAccountId(int accountId);
 
     // pour récupérer le nombre total de comptes
     public long getTotalAccounts();

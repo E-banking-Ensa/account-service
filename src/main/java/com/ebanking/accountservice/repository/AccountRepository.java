@@ -9,6 +9,7 @@ import java.util.UUID;
 
 @Repository
 public interface AccountRepository extends JpaRepository<Account, Integer> {
+
     // Recherche tous les comptes d'un utilisateur par son ID
     List<Account> findByUserId(UUID userId);
 }
