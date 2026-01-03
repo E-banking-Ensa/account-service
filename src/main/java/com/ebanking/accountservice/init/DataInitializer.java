@@ -12,7 +12,7 @@
 //import java.util.List;
 //
 //@Configuration
-//@Profile("dev")   // 🔴 S’exécute UNIQUEMENT en DEV
+//@Profile("dev")   // S’exécute UNIQUEMENT en DEV
 //public class DataInitializer {
 //
 //    @Bean

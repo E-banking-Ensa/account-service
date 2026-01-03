@@ -9,6 +9,7 @@ import com.ebanking.accountservice.dto.response.AccountUpdateStatusResponse;
 import com.ebanking.accountservice.dto.response.TransactionDTO;
 
 import java.util.List;
+import java.util.UUID;
 
 public interface AccountService {
 
@@ -22,7 +23,7 @@ public interface AccountService {
     AccountBalanceResponse getAccountBalance(int accountId);
 
     // Lister les comptes d’un client  donné.
-    List<AccountDTO> getAccountsByClientId(int clientId);
+    List<AccountDTO> getAccountsByClientId(UUID clientId);
 
 
 
@@ -34,4 +35,9 @@ public interface AccountService {
     // genration du releve
     public byte[] getTransactiondtoByAccountId(int accountId);
 
+    // pour récupérer le nombre total de comptes
+    public long getTotalAccounts();
+
+
+    public long getNumberOfAccountsByClientId(UUID clientId);
 }

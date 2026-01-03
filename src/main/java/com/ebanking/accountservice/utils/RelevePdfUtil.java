@@ -59,7 +59,7 @@ public class RelevePdfUtil {
                     infoCompte.getPrenomClient() + " " + infoCompte.getNomClient(),
                     TEXT_FONT
             ));
-//            left.addElement(new Paragraph("Marrakech", TEXT_FONT));
+            left.addElement(new Paragraph(infoCompte.getAdresse(), TEXT_FONT));
             left.addElement(Chunk.NEWLINE);
             left.addElement(new Paragraph("RIB", LABEL_FONT));
             left.addElement(new Paragraph(

@@ -16,10 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @RestController
 @RequestMapping("/api/accounts")
@@ -122,7 +119,7 @@ public class AccountController {
 
 
     @GetMapping("/client/{clientId}")
-    public ResponseEntity<?> getAccountsByClient(@PathVariable int clientId) {
+    public ResponseEntity<?> getAccountsByClient(@PathVariable UUID clientId) {
         try {
             List<AccountDTO> accounts =
                     accountService.getAccountsByClientId(clientId);
@@ -152,24 +149,150 @@ public class AccountController {
 
 
     //transaction
+//    @GetMapping("/{accountId}/transactions")
+//    public List<TransactionDTO> getTransactions(@PathVariable int accountId) {
+//        return accountService.getTransactionsByAccountId(accountId);
+//    }
+
+
+
+    // transactions d'un compte
     @GetMapping("/{accountId}/transactions")
-    public List<TransactionDTO> getTransactions(@PathVariable int accountId) {
-        return accountService.getTransactionsByAccountId(accountId);
+    public ResponseEntity<?> getTransactions(@PathVariable int accountId) {
+        try {
+            // Récupère la liste des transactions
+            List<TransactionDTO> transactions = accountService.getTransactionsByAccountId(accountId);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("message", "Transactions retrieved successfully");
+            result.put("transactions", transactions);
+
+            return ResponseEntity.ok(result);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Failed to retrieve transactions",
+                            e.getMessage()
+                    ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Unexpected error",
+                            e.getMessage()
+                    ));
+        }
     }
 
+
+
+
+
+//    @GetMapping("/{accountId}/releve")
+//    public ResponseEntity<byte[]> downloadReleve(@PathVariable int accountId) {
+//
+//        byte[] pdf = accountService.getTransactiondtoByAccountId(accountId);
+//
+//        return ResponseEntity.ok()
+//                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=releve.pdf")
+//                .contentType(MediaType.APPLICATION_PDF)
+//                .body(pdf);
+//    }
 
 
 
     @GetMapping("/{accountId}/releve")
-    public ResponseEntity<byte[]> downloadReleve(@PathVariable int accountId) {
+    public ResponseEntity<?> downloadReleve(@PathVariable int accountId) {
+        try {
+            byte[] pdf = accountService.getTransactiondtoByAccountId(accountId);
 
-        byte[] pdf = accountService.getTransactiondtoByAccountId(accountId);
+            // Vérifie si le PDF a bien été généré
+            if (pdf == null || pdf.length == 0) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                        .body(ErrorResponseUtil.createErrorResponse(
+                                "Releve not found",
+                                "No transactions found for account ID " + accountId
+                        ));
+            }
 
-        return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=releve.pdf")
-                .contentType(MediaType.APPLICATION_PDF)
-                .body(pdf);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=releve.pdf")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdf);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Failed to generate releve",
+                            e.getMessage()
+                    ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Unexpected error",
+                            e.getMessage()
+                    ));
+        }
     }
+
+
+    @GetMapping("/nbrTotal")
+    public ResponseEntity<?> getTotalAccounts() {
+        try {
+            long total = accountService.getTotalAccounts();
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("message", "Total number of accounts retrieved successfully");
+            result.put("totalAccounts", total);
+
+            return ResponseEntity.ok(result);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Failed to retrieve total accounts",
+                            e.getMessage()
+                    ));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Unexpected error",
+                            e.getMessage()
+                    ));
+        }
+    }
+
+
+    @GetMapping("/{clientId}/nbrAccount")
+    public ResponseEntity<?> getNumberOfAccountsByClient(@PathVariable UUID clientId) {
+        try {
+            long count = accountService.getNumberOfAccountsByClientId(clientId);
+
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("message", "Number of client accounts retrieved successfully");
+            result.put("nbrAccount", count);
+
+            return ResponseEntity.ok(result);
+
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Failed to retrieve client accounts",
+                            e.getMessage()
+                    ));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(ErrorResponseUtil.createErrorResponse(
+                            "Unexpected error",
+                            e.getMessage()
+                    ));
+        }
+    }
+
+
 
 
 }

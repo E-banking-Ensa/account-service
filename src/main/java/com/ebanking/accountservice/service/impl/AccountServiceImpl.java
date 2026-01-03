@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -118,7 +119,7 @@ public class AccountServiceImpl implements AccountService {
 
 
     @Override
-    public List<AccountDTO> getAccountsByClientId(int clientId) {
+    public List<AccountDTO> getAccountsByClientId(UUID clientId) {
         // Vérifier que l'utilisateur existe
 //        userRepository.findById(clientId)
 //                .orElseThrow(() -> new RuntimeException("User not found"));
@@ -214,7 +215,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        infoCompteDTO info = new infoCompteDTO(account.getUser().getFirstName(),account.getUser().getLastName(),account.getRib(),account.getBalance());
+        infoCompteDTO info = new infoCompteDTO(account.getUser().getFirstName(),account.getUser().getLastName(),account.getRib(),account.getBalance(),account.getUser().getAdresse());
 
         List<ReleveCompteDTO> result = new ArrayList<>();
 
@@ -304,6 +305,15 @@ public class AccountServiceImpl implements AccountService {
 
 
 
+    @Override
+    public long getTotalAccounts() {
+        return accountRepository.count(); // Méthode JPA pour compter les lignes
+    }
 
 
+    @Override
+    public long getNumberOfAccountsByClientId(UUID clientId) {
+        // On suppose que User a un champ UUID id
+        return accountRepository.findByUserId(clientId).size();
+    }
 }
