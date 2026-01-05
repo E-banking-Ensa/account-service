@@ -1,5 +1,8 @@
 package com.ebanking.accountservice.service.impl;
 
+import com.ebanking.accountservice.client.UserServiceClient;
+import com.ebanking.accountservice.client.dto.CreateUserRequest;
+import com.ebanking.accountservice.client.dto.UserResponse;
 import com.ebanking.accountservice.dto.request.AccountCreateRequest;
 import com.ebanking.accountservice.dto.request.AccountUpdateStatusRequest;
 import com.ebanking.accountservice.dto.response.*;
@@ -8,6 +11,7 @@ import com.ebanking.accountservice.mapper.AccountMapper;
 import com.ebanking.accountservice.repository.*;
 import com.ebanking.accountservice.service.AccountService;
 import com.ebanking.accountservice.utils.RelevePdfUtil;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,7 +27,7 @@ import java.util.stream.Collectors;
 public class AccountServiceImpl implements AccountService {
 
     private final AccountRepository accountRepository;
-    private final UserRepository userRepository;
+    private final UserServiceClient userServiceClient; // Client Feign vers user-service centralisé
     private final AccountMapper accountMapper;
 
     // transaction
@@ -36,7 +40,7 @@ public class AccountServiceImpl implements AccountService {
 
     public AccountServiceImpl(
             AccountRepository accountRepository,
-            UserRepository userRepository,
+            UserServiceClient userServiceClient,
             AccountMapper accountMapper,
 
             VirementRepository virementRepository,
@@ -47,7 +51,7 @@ public class AccountServiceImpl implements AccountService {
             TransactionRepository transactionRepository
     ) {
         this.accountRepository = accountRepository;
-        this.userRepository = userRepository;
+        this.userServiceClient = userServiceClient;
         this.accountMapper = accountMapper;
 
         //transaction
@@ -63,19 +67,56 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public AccountDTO createAccount(AccountCreateRequest request) {
 
-        // 1️Vérifier que l'utilisateur existe
-        User user = userRepository.findById(request.getUserId())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        // 1️⃣ Vérifier/créer l'utilisateur via user-service centralisé
+        UUID userId = request.getUserId();
+        UserResponse userResponse = getOrCreateUserFromUserService(userId);
 
         // Mapping DTO to Entity
         Account account = accountMapper.toEntity(request);
-        account.setUser(user);
+        account.setUserId(userResponse.getId());
+        
+        // Définir le solde initial si fourni, sinon 0.0
+        if (request.getInitialBalance() != null && request.getInitialBalance() >= 0) {
+            account.setBalance(request.getInitialBalance());
+        }
 
         //  Sauvegarde (RIB généré via @PrePersist)
         Account savedAccount = accountRepository.save(account);
 
         //  Mapping Entity to DTO
         return accountMapper.toDTO(savedAccount);
+    }
+
+    /**
+     * Récupère ou crée un utilisateur via le user-service centralisé
+     */
+    private UserResponse getOrCreateUserFromUserService(UUID userId) {
+        try {
+            // D'abord essayer de récupérer l'utilisateur existant
+            ResponseEntity<UserResponse> response = userServiceClient.getUser(userId);
+            if (response.getBody() != null) {
+                return response.getBody();
+            }
+        } catch (Exception e) {
+            // L'utilisateur n'existe pas, on va le créer
+            System.out.println("User not found in user-service, creating new user: " + userId);
+        }
+
+        // Créer un nouvel utilisateur via user-service
+        CreateUserRequest createRequest = CreateUserRequest.builder()
+                .userId(userId)
+                .username("user_" + userId.toString().substring(0, 8))
+                .email("user_" + userId.toString().substring(0, 8) + "@ebanking.com")
+                .firstName("User")
+                .lastName(userId.toString().substring(0, 8))
+                .role("Client")
+                .build();
+
+        ResponseEntity<UserResponse> createResponse = userServiceClient.getOrCreateUser(createRequest);
+        if (createResponse.getBody() == null) {
+            throw new RuntimeException("Failed to create user in user-service");
+        }
+        return createResponse.getBody();
     }
 
 
@@ -114,28 +155,40 @@ public class AccountServiceImpl implements AccountService {
                 account.getCurrency()
         );
     }
+    
+    @Override
+    public AccountDTO getAccountByRib(String rib) {
+        Account account = accountRepository.findByRib(rib);
+        if (account == null) {
+            throw new RuntimeException("Account not found with RIB: " + rib);
+        }
+        return accountMapper.toDTO(account);
+    }
 
 
 
 
     @Override
     public List<AccountDTO> getAccountsByClientId(UUID clientId) {
-        // Vérifier que l'utilisateur existe
-//        userRepository.findById(clientId)
-//                .orElseThrow(() -> new RuntimeException("User not found"));
-//
-//        // 2⃣ Récupérer les comptes
-//        List<Account> accounts = accountRepository.findByUserId(clientId);
+        // Vérifier que l'utilisateur existe via user-service centralisé
+        try {
+            ResponseEntity<UserResponse> response = userServiceClient.getUser(clientId);
+            if (response.getBody() == null) {
+                throw new RuntimeException("User not found in user-service: " + clientId);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException("User not found in user-service: " + clientId, e);
+        }
 
-        // Vérifier que le client existe
-        Client client = userRepository.findById(clientId)
-                .orElseThrow(() -> new RuntimeException("Client not found"));
-
-        // Récupérer les comptes depuis le client
-        List<Account> accounts = client.getAccounts();
-
+        // Récupérer les comptes depuis le repository par userId
+        List<Account> accounts = accountRepository.findByUserId(clientId);
         return accountMapper.toDTOList(accounts);
-
+    }
+    
+    @Override
+    public List<AccountDTO> getAllAccounts() {
+        List<Account> accounts = accountRepository.findAll();
+        return accountMapper.toDTOList(accounts);
     }
 
 
@@ -215,7 +268,13 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountRepository.findById(accountId)
                 .orElseThrow(() -> new RuntimeException("Account not found"));
 
-        infoCompteDTO info = new infoCompteDTO(account.getUser().getFirstName(),account.getUser().getLastName(),account.getRib(),account.getBalance(),account.getUser().getAdresse());
+        // Récupérer les infos utilisateur via le service centralisé
+        UserResponse user = userServiceClient.getUser(account.getUserId()).getBody();
+        String firstName = user != null ? user.getFirstName() : "N/A";
+        String lastName = user != null ? user.getLastName() : "N/A";
+        String adresse = user != null ? user.getAdresse() : "N/A";
+
+        infoCompteDTO info = new infoCompteDTO(firstName, lastName, account.getRib(), account.getBalance(), adresse);
 
         List<ReleveCompteDTO> result = new ArrayList<>();
 
@@ -315,5 +374,22 @@ public class AccountServiceImpl implements AccountService {
     public long getNumberOfAccountsByClientId(UUID clientId) {
         // On suppose que User a un champ UUID id
         return accountRepository.findByUserId(clientId).size();
+    }
+
+    @Override
+    public void updateBalance(String rib, Double amount) {
+        Account account = accountRepository.findByRib(rib);
+        if (account == null) {
+            throw new RuntimeException("Account not found with RIB: " + rib);
+        }
+        
+        double newBalance = account.getBalance() + amount;
+        if (newBalance < 0) {
+            throw new RuntimeException("Insufficient balance for account: " + rib);
+        }
+        
+        account.setBalance(newBalance);
+        account.setUpdatedDate(LocalDateTime.now());
+        accountRepository.save(account);
     }
 }

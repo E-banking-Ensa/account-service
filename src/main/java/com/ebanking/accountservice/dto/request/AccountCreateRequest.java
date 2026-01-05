@@ -8,5 +8,6 @@ import java.util.UUID;
 public class AccountCreateRequest {
     private UUID userId;
     private String accountType;
+    private Double initialBalance;  // Solde initial optionnel
 
 }

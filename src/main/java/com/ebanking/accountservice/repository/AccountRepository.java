@@ -11,4 +11,7 @@ import java.util.UUID;
 public interface AccountRepository extends JpaRepository<Account, Integer> {
     // Recherche tous les comptes d'un utilisateur par son ID
     List<Account> findByUserId(UUID userId);
+    
+    // Recherche un compte par RIB
+    Account findByRib(String rib);
 }

@@ -17,9 +17,16 @@ public class Account {
     private int id;
     private Double balance = 0.0;
     private String currency = "MAD";
+    
+    // Référence vers l'utilisateur dans user-service (centralisé)
+    @Column(name = "user_id", nullable = false)
+    private java.util.UUID userId;
+    
+    // Relation locale avec Client pour les requêtes JPA (optionnel, peut être supprimé après migration complète)
     @ManyToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "user_id")
-    private User user;
+    @JoinColumn(name = "client_id")
+    private Client client;
+    
     @OneToMany
     private List<Account> beneficiere;
 
@@ -70,12 +77,20 @@ public class Account {
         this.currency = currency;
     }
 
-    public User getUser() {
-        return user;
+    public java.util.UUID getUserId() {
+        return userId;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(java.util.UUID userId) {
+        this.userId = userId;
+    }
+
+    public Client getClient() {
+        return client;
+    }
+
+    public void setClient(Client client) {
+        this.client = client;
     }
 
     public List<Account> getBeneficiere() {

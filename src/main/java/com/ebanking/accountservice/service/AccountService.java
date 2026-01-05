@@ -21,9 +21,15 @@ public interface AccountService {
 
      // Consulter le solde d'un compte
     AccountBalanceResponse getAccountBalance(int accountId);
+    
+    // Rechercher un compte par RIB
+    AccountDTO getAccountByRib(String rib);
 
-    // Lister les comptes d’un client  donné.
+    // Lister les comptes d'un client  donné.
     List<AccountDTO> getAccountsByClientId(UUID clientId);
+    
+    // Lister tous les comptes
+    List<AccountDTO> getAllAccounts();
 
 
 
@@ -40,4 +46,7 @@ public interface AccountService {
 
 
     public long getNumberOfAccountsByClientId(UUID clientId);
+    
+    // Mettre à jour le solde (positif pour crédit, négatif pour débit)
+    void updateBalance(String rib, Double amount);
 }

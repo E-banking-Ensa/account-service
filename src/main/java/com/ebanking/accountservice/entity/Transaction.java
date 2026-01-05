@@ -14,7 +14,7 @@ import java.util.List;
 public  class Transaction {
     @Id @GeneratedValue(strategy = GenerationType.TABLE)
     private int id;
-    private Double Montant;
+    private Double montant;
     private LocalDateTime date;
     @Enumerated(EnumType.STRING)
     private TypeTransaction type;

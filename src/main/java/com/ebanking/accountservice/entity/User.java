@@ -39,8 +39,8 @@ public class User {
     @Column(nullable = false, updatable = true)
     private boolean enabled=false;//mais apres on verra s'il faut la changer en false par edfaut
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Account> accounts;
+    // Note: La relation avec Account a été supprimée car les utilisateurs sont maintenant
+    // gérés centralement par user-service. Account utilise userId (UUID) comme référence.
 
 
 }

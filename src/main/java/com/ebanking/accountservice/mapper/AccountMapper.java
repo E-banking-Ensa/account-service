@@ -13,7 +13,7 @@ import java.util.List;
 public interface AccountMapper {
 
     // Entity to DTO
-    @Mapping(source = "user.id", target = "userId")
+    @Mapping(source = "userId", target = "userId")
     @Mapping(source = "id", target = "accountId")
     AccountDTO toDTO(Account account);
 
