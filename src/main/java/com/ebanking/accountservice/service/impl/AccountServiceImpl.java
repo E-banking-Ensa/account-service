@@ -48,13 +48,12 @@ public class AccountServiceImpl implements AccountService {
             RetraitRepository retraitRepository,
             MobileRechargeRepository mobileRechargeRepository,
             CryptoWalletRepository cryptoWalletRepository,
-            TransactionRepository transactionRepository
-    ) {
+            TransactionRepository transactionRepository) {
         this.accountRepository = accountRepository;
         this.userServiceClient = userServiceClient;
         this.accountMapper = accountMapper;
 
-        //transaction
+        // transaction
         this.transactionRepository = transactionRepository;
         this.virementRepository = virementRepository;
         this.depotRepository = depotRepository;
@@ -74,16 +73,16 @@ public class AccountServiceImpl implements AccountService {
         // Mapping DTO to Entity
         Account account = accountMapper.toEntity(request);
         account.setUserId(userResponse.getId());
-        
+
         // Définir le solde initial si fourni, sinon 0.0
         if (request.getInitialBalance() != null && request.getInitialBalance() >= 0) {
             account.setBalance(request.getInitialBalance());
         }
 
-        //  Sauvegarde (RIB généré via @PrePersist)
+        // Sauvegarde (RIB généré via @PrePersist)
         Account savedAccount = accountRepository.save(account);
 
-        //  Mapping Entity to DTO
+        // Mapping Entity to DTO
         return accountMapper.toDTO(savedAccount);
     }
 
@@ -119,9 +118,6 @@ public class AccountServiceImpl implements AccountService {
         return createResponse.getBody();
     }
 
-
-
-
     @Override
     public AccountUpdateStatusResponse updateAccountStatus(int accountId, AccountUpdateStatusRequest request) {
         Account account = accountRepository.findById(accountId)
@@ -142,8 +138,6 @@ public class AccountServiceImpl implements AccountService {
         return response;
     }
 
-
-
     @Override
     public AccountBalanceResponse getAccountBalance(int accountId) {
         Account account = accountRepository.findById(accountId)
@@ -152,10 +146,9 @@ public class AccountServiceImpl implements AccountService {
         return new AccountBalanceResponse(
                 account.getId(),
                 account.getBalance(),
-                account.getCurrency()
-        );
+                account.getCurrency());
     }
-    
+
     @Override
     public AccountDTO getAccountByRib(String rib) {
         Account account = accountRepository.findByRib(rib);
@@ -164,9 +157,6 @@ public class AccountServiceImpl implements AccountService {
         }
         return accountMapper.toDTO(account);
     }
-
-
-
 
     @Override
     public List<AccountDTO> getAccountsByClientId(UUID clientId) {
@@ -184,14 +174,12 @@ public class AccountServiceImpl implements AccountService {
         List<Account> accounts = accountRepository.findByUserId(clientId);
         return accountMapper.toDTOList(accounts);
     }
-    
+
     @Override
     public List<AccountDTO> getAllAccounts() {
         List<Account> accounts = accountRepository.findAll();
         return accountMapper.toDTOList(accounts);
     }
-
-
 
     // transaction
     public List<TransactionDTO> getTransactionsByAccountId(int accountId) {
@@ -209,14 +197,16 @@ public class AccountServiceImpl implements AccountService {
                     Virement v = virementRepository.findById(t.getId()).orElse(null);
                     if (v != null) {
                         if (v.getSource() != null && v.getSource().getId() == accountId) {
-                            VirementDTO dto = new VirementDTO ("VIREMENT", -v.getMontant(), v.getMotife(), v.getDate(), v.getDestination().getRib(),
+                            VirementDTO dto = new VirementDTO("VIREMENT", -v.getMontant(), v.getMotife(), v.getDate(),
+                                    v.getDestination().getRib(),
                                     v.getType_virement().name());
-                             //dto.setMotife(v.getMotife());
+                            // dto.setMotife(v.getMotife());
                             result.add(dto);
                         } else if (v.getDestination() != null && v.getDestination().getId() == accountId) {
-                            VirementDTO dto = new VirementDTO ("VIREMENT", +v.getMontant(), v.getMotife(), v.getDate(), v.getDestination().getRib(),
+                            VirementDTO dto = new VirementDTO("VIREMENT", +v.getMontant(), v.getMotife(), v.getDate(),
+                                    v.getDestination().getRib(),
                                     v.getType_virement().name());
-                            //dto.setMotife(v.getMotife());
+                            // dto.setMotife(v.getMotife());
                             result.add(dto);
                         }
                     }
@@ -229,27 +219,24 @@ public class AccountServiceImpl implements AccountService {
 
                 case WITHDRAW -> {
                     Retrait r = (Retrait) t;
-                    result.add(new TransactionDTO("WITHDRAW", -r.getMontant(),  r.getDate()));
+                    result.add(new TransactionDTO("WITHDRAW", -r.getMontant(), r.getDate()));
                 }
 
                 case RECHARGE -> {
                     MobileRecharge m = mobileRechargeRepository.findById(t.getId()).orElse(null);
                     if (m != null) {
-                        TransactionDTO dto = new MobileRechargeDTO("RECHARGE", -m.getMontant(),m.getPhoneNumber(), m.getDate());
-                         //dto.setPhoneNumber(m.getPhoneNumber());
+                        TransactionDTO dto = new MobileRechargeDTO("RECHARGE", -m.getMontant(), m.getPhoneNumber(),
+                                m.getDate());
+                        // dto.setPhoneNumber(m.getPhoneNumber());
                         result.add(dto);
                     }
                 }
 
-                case CRYPTO_BUY, CRYPTO_SELL -> {
-                    CryptoWallet c = cryptoWalletRepository.findById((long) t.getId()).orElse(null);
-                    if (c != null) {
-                        if (c.getType() == TypeTransaction.CRYPTO_BUY) {
-                            result.add(new TransactionDTO("CRYPTO_BUY", -c.getMontant(), c.getDate()));
-                        } else if (c.getType() == TypeTransaction.CRYPTO_SELL) {
-                            result.add(new TransactionDTO("CRYPTO_SELL", +c.getMontant(), c.getDate()));
-                        }
-                    }
+                case CRYPTO_BUY -> {
+                    result.add(new TransactionDTO("CRYPTO_BUY", -t.getMontant(), t.getDate()));
+                }
+                case CRYPTO_SELL -> {
+                    result.add(new TransactionDTO("CRYPTO_SELL", t.getMontant(), t.getDate()));
                 }
             }
         }
@@ -257,12 +244,7 @@ public class AccountServiceImpl implements AccountService {
         return result;
     }
 
-
-
-
-
-
-    // gneration du  releve compte
+    // gneration du releve compte
     public byte[] getTransactiondtoByAccountId(int accountId) {
 
         Account account = accountRepository.findById(accountId)
@@ -280,8 +262,7 @@ public class AccountServiceImpl implements AccountService {
 
         // ===== Dates "manuelles" pour le test =====
         LocalDate startDate = LocalDate.of(2026, 1, 1);
-        LocalDate endDate   = LocalDate.of(2026, 1, 31);
-
+        LocalDate endDate = LocalDate.of(2026, 1, 31);
 
         // Filtrer les transactions entre les deux dates (sans tenir compte de l'heure)
         List<Transaction> filteredTransactions = account.getTransactions().stream()
@@ -302,54 +283,45 @@ public class AccountServiceImpl implements AccountService {
                     Virement v = virementRepository.findById(t.getId()).orElse(null);
                     if (v != null) {
                         if (v.getSource() != null && v.getSource().getId() == accountId) {
-                            //result.add(new TransactionDTO("VIREMENT", -v.getMontant(), v.getDate()));
-//                            VirementDTO dto = new VirementDTO ("VIREMENT", -v.getMontant(), v.getMotife(), v.getDate(), v.getDestination().getRib(),
-//                                    v.getType_virement().name());
-                            //dto.setMotife(v.getMotife());
-                            result.add(new ReleveCompteDTO("VIREMENT", -v.getMontant(), v.getDate(),v.getMotife(),v.getType_virement().name()));
-//                            result.add(dto);
+                            // result.add(new TransactionDTO("VIREMENT", -v.getMontant(), v.getDate()));
+                            // VirementDTO dto = new VirementDTO ("VIREMENT", -v.getMontant(),
+                            // v.getMotife(), v.getDate(), v.getDestination().getRib(),
+                            // v.getType_virement().name());
+                            // dto.setMotife(v.getMotife());
+                            result.add(new ReleveCompteDTO("VIREMENT", -v.getMontant(), v.getDate(), v.getMotife(),
+                                    v.getType_virement().name()));
+                            // result.add(dto);
                         } else if (v.getDestination() != null && v.getDestination().getId() == accountId) {
-                            //result.add(new TransactionDTO("VIREMENT", +v.getMontant(), v.getDate()));
-//                            VirementDTO dto = new VirementDTO ("VIREMENT", +v.getMontant(), v.getMotife(), v.getDate(), v.getDestination().getRib(),
-//                                    v.getType_virement().name());
-                            result.add(new ReleveCompteDTO("VIREMENT", +v.getMontant(), v.getDate(),v.getMotife(),v.getType_virement().name()));
-                            //dto.setMotife(v.getMotife());
-//                            result.add(dto);
+                            // result.add(new TransactionDTO("VIREMENT", +v.getMontant(), v.getDate()));
+                            // VirementDTO dto = new VirementDTO ("VIREMENT", +v.getMontant(),
+                            // v.getMotife(), v.getDate(), v.getDestination().getRib(),
+                            // v.getType_virement().name());
+                            result.add(new ReleveCompteDTO("VIREMENT", +v.getMontant(), v.getDate(), v.getMotife(),
+                                    v.getType_virement().name()));
+                            // dto.setMotife(v.getMotife());
+                            // result.add(dto);
                         }
                     }
                 }
 
                 case DEPOSIT -> {
                     Depot d = (Depot) t;
-                    //result.add(new TransactionDTO("DEPOSIT", +d.getMontant(), d.getDate()));
-                    result.add(new ReleveCompteDTO("DEPOSIT", +d.getMontant(), d.getDate(),null,null));
+                    // result.add(new TransactionDTO("DEPOSIT", +d.getMontant(), d.getDate()));
+                    result.add(new ReleveCompteDTO("DEPOSIT", +d.getMontant(), d.getDate(), null, null));
                 }
 
                 case WITHDRAW -> {
                     Retrait r = (Retrait) t;
-                    //result.add(new TransactionDTO("WITHDRAW", -r.getMontant(), r.getDate()));
-                    result.add(new ReleveCompteDTO("WITHDRAW", -r.getMontant(), r.getDate(),null,null));
+                    // result.add(new TransactionDTO("WITHDRAW", -r.getMontant(), r.getDate()));
+                    result.add(new ReleveCompteDTO("WITHDRAW", -r.getMontant(), r.getDate(), null, null));
                 }
 
                 case RECHARGE -> {
                     MobileRecharge m = mobileRechargeRepository.findById(t.getId()).orElse(null);
                     if (m != null) {
-                        //result.add(new TransactionDTO("RECHARGE", -m.getMontant(), m.getDate()));
-                        result.add(new ReleveCompteDTO("RECHARGE", -m.getMontant(), m.getDate(),null, null));
+                        // result.add(new TransactionDTO("RECHARGE", -m.getMontant(), m.getDate()));
+                        result.add(new ReleveCompteDTO("RECHARGE", -m.getMontant(), m.getDate(), null, null));
 
-                    }
-                }
-
-                case CRYPTO_BUY, CRYPTO_SELL -> {
-                    CryptoWallet c = cryptoWalletRepository.findById((long) t.getId()).orElse(null);
-                    if (c != null) {
-                        if (c.getType() == TypeTransaction.CRYPTO_BUY) {
-                            //result.add(new TransactionDTO("CRYPTO_BUY", -c.getMontant(), c.getDate()));
-                            result.add(new ReleveCompteDTO("CRYPTO_BUY", -c.getMontant(), c.getDate(),null, null));
-                        } else {
-                            //result.add(new TransactionDTO("CRYPTO_SELL", +c.getMontant(), c.getDate()));
-                            result.add(new ReleveCompteDTO("CRYPTO_SELL", +c.getMontant(), c.getDate(),null, null));
-                        }
                     }
                 }
             }
@@ -357,18 +329,15 @@ public class AccountServiceImpl implements AccountService {
 
         // ===== APPEL DU PDF =====
         RelevePdfUtil pdfUtil = new RelevePdfUtil();
-        byte[] pdf = pdfUtil.generateRelevePdf(info,result);
+        byte[] pdf = pdfUtil.generateRelevePdf(info, result);
 
         return pdf;
     }
-
-
 
     @Override
     public long getTotalAccounts() {
         return accountRepository.count(); // Méthode JPA pour compter les lignes
     }
-
 
     @Override
     public long getNumberOfAccountsByClientId(UUID clientId) {
@@ -382,14 +351,37 @@ public class AccountServiceImpl implements AccountService {
         if (account == null) {
             throw new RuntimeException("Account not found with RIB: " + rib);
         }
-        
+
         double newBalance = account.getBalance() + amount;
         if (newBalance < 0) {
             throw new RuntimeException("Insufficient balance for account: " + rib);
         }
-        
+
         account.setBalance(newBalance);
         account.setUpdatedDate(LocalDateTime.now());
         accountRepository.save(account);
+
+        // Enregistrer la transaction
+        if (amount < 0) {
+            // Débit -> Retrait (CRYPTO_BUY si via updateBalance public, ou juste WITHDRAW ?)
+            // On suppose ici que cet appel vient du service crypto pour l'instant, ou on met un type générique.
+            // Le plan disait d'utiliser CRYPTO_BUY si < 0.
+            Retrait retrait = new Retrait();
+            retrait.setMontant(Math.abs(amount));
+            retrait.setDate(LocalDateTime.now());
+            retrait.setType(TypeTransaction.CRYPTO_BUY); // Ou WITHDRAW si on veut être générique
+            retrait.setAccount(account);
+            retrait.setAccounts(List.of(account));
+            retraitRepository.save(retrait);
+        } else if (amount > 0) {
+            // Crédit -> Dépôt
+            Depot depot = new Depot();
+            depot.setMontant(amount);
+            depot.setDate(LocalDateTime.now());
+            depot.setType(TypeTransaction.CRYPTO_SELL); // Ou DEPOSIT
+            depot.setAccount(account);
+            depot.setAccounts(List.of(account));
+            depotRepository.save(depot);
+        }
     }
 }

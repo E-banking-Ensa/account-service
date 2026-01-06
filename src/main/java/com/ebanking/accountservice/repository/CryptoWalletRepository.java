@@ -1,6 +1,5 @@
 package com.ebanking.accountservice.repository;
 
-
 import com.ebanking.accountservice.entity.Account;
 import com.ebanking.accountservice.entity.CryptoWallet;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -19,6 +18,4 @@ public interface CryptoWalletRepository extends JpaRepository<CryptoWallet, Long
     // Vérifier si un wallet avec une adresse donnée existe déjà
     Optional<CryptoWallet> findByWalletAddress(String walletAddress);
 
-    // Rechercher tous les wallets liés à un compte
-    List<CryptoWallet> findByAccountsContaining(Account account);
 }
